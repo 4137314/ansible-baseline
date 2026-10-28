@@ -13,13 +13,17 @@
           - "'passwordauthentication no' in sshd.stdout"
           - "'permitrootlogin no' in sshd.stdout"
 
-    - name: Operator can sudo without password
-      ansible.builtin.command: sudo -l -U alice
-      register: sudo
+    # Checked without invoking sudo: some container images break sudo's PAM stack for root.
+    - name: Sudoers configuration is valid
+      ansible.builtin.command: visudo -c
       changed_when: false
-    - name: Check sudo rule
+    - name: Read operator sudo rule
+      ansible.builtin.slurp:
+        src: /etc/sudoers.d/90-operators
+      register: sudoers
+    - name: Admin operator has passwordless sudo
       ansible.builtin.assert:
-        that: "'NOPASSWD: ALL' in sudo.stdout"
+        that: "'alice ALL=(ALL:ALL) NOPASSWD: ALL' in (sudoers.content | b64decode)"
 
     - name: Revoked account is locked and keyless
       ansible.builtin.command: passwd -S mallory
