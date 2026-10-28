@@ -21,6 +21,8 @@ provisioner:
   inventory:
     group_vars:
       all:
+        # Molecule connects as root; some images reject sudo for root via PAM.
+        ansible_become: false
         users_operators:
           - name: alice
             admin: true
