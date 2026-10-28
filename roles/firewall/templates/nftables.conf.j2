@@ -1,0 +1,40 @@
+#!/usr/sbin/nft -f
+# {{ ansible_managed }}
+flush ruleset
+
+table inet filter {
+  chain input {
+    type filter hook input priority filter; policy drop;
+    ct state established,related accept
+    ct state invalid drop
+    iif lo accept
+{% if firewall_allow_ping %}
+    meta l4proto { icmp, ipv6-icmp } accept
+{% else %}
+    icmpv6 type { nd-neighbor-solicit, nd-neighbor-advert, nd-router-advert } accept
+{% endif %}
+{% for rule in firewall_rules %}
+{%   set proto = rule.proto | default('tcp') %}
+{%   set v4 = rule.from | default([]) | reject('search', ':') | list %}
+{%   set v6 = rule.from | default([]) | select('search', ':') | list %}
+{%   if not rule.from | default([]) %}
+    {{ proto }} dport {{ rule.port }} accept
+{%   endif %}
+{%   if v4 %}
+    ip saddr { {{ v4 | join(', ') }} } {{ proto }} dport {{ rule.port }} accept
+{%   endif %}
+{%   if v6 %}
+    ip6 saddr { {{ v6 | join(', ') }} } {{ proto }} dport {{ rule.port }} accept
+{%   endif %}
+{% endfor %}
+{% for line in firewall_extra_input_rules %}
+    {{ line }}
+{% endfor %}
+  }
+  chain forward {
+    type filter hook forward priority filter; policy drop;
+  }
+  chain output {
+    type filter hook output priority filter; policy accept;
+  }
+}

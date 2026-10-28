@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: restic
+  author: Mattia Fait
+  description: mattiafait.baseline restic role
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - {name: Debian, versions: [bookworm, trixie]}
+    - {name: Ubuntu, versions: [jammy, noble]}
+    - {name: EL, versions: ["9", "10"]}
+dependencies: []

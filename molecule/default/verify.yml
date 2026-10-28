@@ -1,0 +1,74 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Read effective sshd configuration
+      ansible.builtin.command: sshd -T
+      register: sshd
+      changed_when: false
+    - name: SSH is key-only and root login is disabled
+      ansible.builtin.assert:
+        that:
+          - "'passwordauthentication no' in sshd.stdout"
+          - "'permitrootlogin no' in sshd.stdout"
+
+    - name: Operator can sudo without password
+      ansible.builtin.command: sudo -l -U alice
+      register: sudo
+      changed_when: false
+    - name: Check sudo rule
+      ansible.builtin.assert:
+        that: "'NOPASSWD: ALL' in sudo.stdout"
+
+    - name: Revoked account is locked and keyless
+      ansible.builtin.command: passwd -S mallory
+      register: mallory
+      changed_when: false
+    - name: Check revoked account
+      ansible.builtin.assert:
+        that: mallory.stdout.split()[1] in ['L', 'LK']
+    - name: Revoked key file is gone
+      ansible.builtin.stat:
+        path: /home/mallory/.ssh/authorized_keys
+      register: mallory_keys
+    - name: Check key file
+      ansible.builtin.assert:
+        that: not mallory_keys.stat.exists
+
+    - name: Read nftables ruleset
+      ansible.builtin.command: nft list chain inet filter input
+      register: nft
+      changed_when: false
+    - name: Firewall default-drops and allows scoped SSH
+      ansible.builtin.assert:
+        that:
+          - "'policy drop' in nft.stdout"
+          - "'ip saddr 10.0.0.0/8 tcp dport 22 accept' in nft.stdout"
+          - "'ip6 saddr fd00::/8 tcp dport 22 accept' in nft.stdout"
+
+    - name: node_exporter serves metrics
+      ansible.builtin.uri:
+        url: http://127.0.0.1:9100/metrics
+        return_content: true
+      register: metrics
+      retries: 5
+      delay: 2
+      until: metrics.status == 200
+    - name: Check systemd collector
+      ansible.builtin.assert:
+        that: "'node_systemd_unit_state' in metrics.content"
+
+    - name: Run a backup
+      ansible.builtin.systemd_service:
+        name: restic-backup.service
+        state: started
+    - name: List snapshots
+      ansible.builtin.shell: set -a && . /etc/restic/env && /usr/local/bin/restic snapshots --json
+      args:
+        executable: /bin/bash
+      register: snapshots
+      changed_when: false
+    - name: Check snapshot exists
+      ansible.builtin.assert:
+        that: (snapshots.stdout | from_json | length) == 1

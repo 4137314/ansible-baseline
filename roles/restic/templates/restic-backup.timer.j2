@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Scheduled restic backup
+
+[Timer]
+OnCalendar={{ restic_schedule }}
+Persistent=true
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

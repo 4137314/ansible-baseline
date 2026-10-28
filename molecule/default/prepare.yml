@@ -1,0 +1,27 @@
+---
+- name: Prepare
+  hosts: all
+  tasks:
+    - name: Create a pre-existing revoked account with a key
+      ansible.builtin.user:
+        name: mallory
+    - name: Create mallory's SSH directory
+      ansible.builtin.file:
+        path: /home/mallory/.ssh
+        state: directory
+        owner: mallory
+        mode: "0700"
+    - name: Give mallory a key that must be removed
+      ansible.builtin.copy:
+        dest: /home/mallory/.ssh/authorized_keys
+        content: "ssh-ed25519 AAAA mallory\n"
+        mode: "0600"
+        owner: mallory
+    - name: Install sshd and passwd tools
+      ansible.builtin.package:
+        name: openssh-server
+        state: present
+        update_cache: true
+    - name: Generate host keys (containers ship without them)
+      ansible.builtin.command: ssh-keygen -A
+      changed_when: false

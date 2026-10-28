@@ -1,0 +1,11 @@
+---
+# - name: alice
+#   keys: ["ssh-ed25519 AAAA... alice@laptop"]
+#   admin: true          # passwordless sudo
+#   groups: [deploy]
+users_operators: []
+# Former operators: account is kept for audit trails but locked and keyless.
+users_revoked: []
+users_shell: /bin/bash
+# Replace authorized_keys entirely (removes keys not declared here).
+users_exclusive_keys: true

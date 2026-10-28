@@ -1,0 +1,11 @@
+#!/bin/bash
+# {{ ansible_managed }}
+set -euo pipefail
+RESTIC=/usr/local/bin/restic
+"$RESTIC" snapshots --latest 1 >/dev/null 2>&1 || "$RESTIC" init
+{% if restic_pre_backup %}
+{{ restic_pre_backup }}
+{% endif %}
+"$RESTIC" backup --tag baseline --one-file-system --exclude-caches \
+  --exclude-file /etc/restic/excludes {{ restic_paths | map('quote') | join(' ') }}
+"$RESTIC" forget --prune --tag baseline --host "$(hostname)" {{ restic_forget_args }}

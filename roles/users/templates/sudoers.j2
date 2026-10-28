@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+{% for operator in users_operators if operator.admin | default(false) %}
+{{ operator.name }} ALL=(ALL:ALL) NOPASSWD: ALL
+{% endfor %}

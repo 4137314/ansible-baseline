@@ -1,0 +1,17 @@
+---
+namespace: mattiafait
+name: baseline
+version: 0.1.0
+readme: README.md
+authors:
+  - Mattia Fait (https://github.com/4137314)
+description: Production baseline for Debian/Ubuntu and RHEL-family servers — hardening, operators, nftables firewall, node_exporter and restic backups.
+license:
+  - MIT
+tags: [linux, security, hardening, monitoring, backup, infrastructure]
+dependencies:
+  ansible.posix: ">=1.5.0"
+  community.general: ">=8.0.0"
+repository: https://github.com/4137314/ansible-baseline
+issues: https://github.com/4137314/ansible-baseline/issues
+build_ignore: [molecule, .github, "*.tar.gz"]

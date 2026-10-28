@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+[Unit]
+Description=restic backup
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/restic/env
+Environment=RESTIC_CACHE_DIR=/var/cache/restic
+ExecStart=/usr/local/sbin/restic-backup
+Nice=10
+IOSchedulingClass=idle

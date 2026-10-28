@@ -1,0 +1,23 @@
+---
+- name: Install dnf-automatic
+  ansible.builtin.dnf:
+    name: dnf-automatic
+    state: present
+
+- name: Configure dnf-automatic
+  community.general.ini_file:
+    path: /etc/dnf/automatic.conf
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    mode: "0644"
+  loop:
+    - {section: commands, option: upgrade_type, value: "{{ 'security' if hardening_auto_updates_security_only else 'default' }}"}
+    - {section: commands, option: apply_updates, value: "yes"}
+    - {section: commands, option: reboot, value: "{{ 'when-needed' if hardening_auto_reboot else 'never' }}"}
+
+- name: Enable dnf-automatic timer
+  ansible.builtin.systemd_service:
+    name: dnf-automatic.timer
+    enabled: true
+    state: started

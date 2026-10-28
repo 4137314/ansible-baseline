@@ -1,0 +1,4 @@
+---
+firewall_config_path:
+  Debian: /etc/nftables.conf
+  RedHat: /etc/sysconfig/nftables.conf

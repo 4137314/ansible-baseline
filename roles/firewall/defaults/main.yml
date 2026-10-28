@@ -1,0 +1,10 @@
+---
+# Each rule: {port: 443, proto: tcp, from: []}; empty "from" = any source.
+# IPv4 and IPv6 CIDRs can be mixed in "from".
+firewall_rules:
+  - {port: 22, proto: tcp, from: []}
+firewall_allow_ping: true
+# Stop firewalld/ufw so they cannot overwrite the nftables ruleset.
+firewall_disable_conflicting: true
+# Raw nftables lines appended to the input chain.
+firewall_extra_input_rules: []

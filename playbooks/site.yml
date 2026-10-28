@@ -1,0 +1,13 @@
+---
+# Full baseline. Run a subset with --tags hardening,users,firewall,node_exporter,restic.
+- name: Apply server baseline
+  hosts: "{{ baseline_hosts | default('all') }}"
+  become: true
+  roles:
+    - {role: mattiafait.baseline.users, tags: [users]}
+    - {role: mattiafait.baseline.hardening, tags: [hardening]}
+    - {role: mattiafait.baseline.firewall, tags: [firewall]}
+    - {role: mattiafait.baseline.node_exporter, tags: [node_exporter]}
+    - role: mattiafait.baseline.restic
+      tags: [restic]
+      when: restic_repository | default('') | length > 0

@@ -1,0 +1,94 @@
+---
+- name: Validate configuration
+  ansible.builtin.assert:
+    that: [restic_repository | length > 0, restic_password | length > 0]
+    fail_msg: restic_repository and restic_password are required.
+    quiet: true
+
+- name: Refresh apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == 'Debian'
+
+- name: Install bzip2
+  ansible.builtin.package:
+    name: bzip2
+    state: present
+
+- name: Create directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop: [/opt/restic, /etc/restic]
+
+- name: Download and verify release
+  ansible.builtin.get_url:
+    url: "{{ restic_url }}/{{ restic_asset }}.bz2"
+    dest: "/opt/restic/{{ restic_asset }}.bz2"
+    checksum: "sha256:{{ restic_url }}/SHA256SUMS"
+    mode: "0600"
+
+- name: Decompress binary
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      bzip2 -dc /opt/restic/{{ restic_asset }}.bz2 > {{ restic_binary }}.tmp &&
+      chmod 0755 {{ restic_binary }}.tmp &&
+      mv {{ restic_binary }}.tmp {{ restic_binary }}
+    executable: /bin/bash
+    creates: "{{ restic_binary }}"
+
+- name: Link restic into PATH
+  ansible.builtin.file:
+    src: "{{ restic_binary }}"
+    dest: /usr/local/bin/restic
+    state: link
+
+- name: Write repository password
+  ansible.builtin.copy:
+    dest: /etc/restic/password
+    content: "{{ restic_password }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Write repository environment
+  ansible.builtin.template:
+    src: env.j2
+    dest: /etc/restic/env
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Write excludes
+  ansible.builtin.copy:
+    dest: /etc/restic/excludes
+    content: "{{ restic_exclude | join('\n') }}\n"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Install backup script and units
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - {src: restic-backup.sh.j2, dest: /usr/local/sbin/restic-backup, mode: "0700"}
+    - {src: restic-backup.service.j2, dest: /etc/systemd/system/restic-backup.service, mode: "0644"}
+    - {src: restic-backup.timer.j2, dest: /etc/systemd/system/restic-backup.timer, mode: "0644"}
+
+- name: Enable backup timer
+  ansible.builtin.systemd_service:
+    name: restic-backup.timer
+    enabled: true
+    state: started
+    daemon_reload: true

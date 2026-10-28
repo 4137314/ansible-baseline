@@ -1,0 +1,70 @@
+---
+- name: Validate operator definitions
+  ansible.builtin.assert:
+    that:
+      - users_operators | selectattr('admin', 'defined') | selectattr('admin') | list | length > 0
+      - users_operators | map(attribute='keys') | flatten | select('match', '^ssh-dss') | list | length == 0
+      - users_operators | map(attribute='name') | intersect(users_revoked) | length == 0
+    fail_msg: Define at least one admin operator, no DSA keys, and do not list revoked users as operators.
+    quiet: true
+
+- name: Create operator groups
+  ansible.builtin.group:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ users_operators | map(attribute='groups', default=[]) | flatten | unique }}"
+
+- name: Create operators
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    shell: "{{ users_shell }}"
+    groups: "{{ item.groups | default([]) }}"
+    append: true
+    password: "!"
+    update_password: on_create
+  loop: "{{ users_operators }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Install operator SSH keys
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ item['keys'] | join('\n') }}"
+    exclusive: "{{ users_exclusive_keys }}"
+  loop: "{{ users_operators }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Grant sudo to admin operators
+  ansible.builtin.template:
+    src: sudoers.j2
+    dest: /etc/sudoers.d/90-operators
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -cf %s
+
+- name: Look up revoked accounts
+  ansible.builtin.command: getent passwd {{ item }}
+  loop: "{{ users_revoked }}"
+  register: users_revoked_lookup
+  changed_when: false
+  failed_when: users_revoked_lookup.rc not in [0, 2]
+
+- name: Lock revoked accounts
+  ansible.builtin.user:
+    name: "{{ item.item }}"
+    password_lock: true
+    expires: 1
+    shell: /usr/sbin/nologin
+  loop: "{{ users_revoked_lookup.results | selectattr('rc', 'equalto', 0) }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Remove SSH keys of revoked accounts
+  ansible.builtin.file:
+    path: "{{ item.stdout.split(':')[5] }}/.ssh/authorized_keys"
+    state: absent
+  loop: "{{ users_revoked_lookup.results | selectattr('rc', 'equalto', 0) }}"
+  loop_control:
+    label: "{{ item.item }}"

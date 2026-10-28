@@ -1,0 +1,5 @@
+---
+restic_arch_map: {x86_64: amd64, aarch64: arm64}
+restic_asset: "restic_{{ restic_version }}_linux_{{ restic_arch_map[ansible_architecture] }}"
+restic_url: "https://github.com/restic/restic/releases/download/v{{ restic_version }}"
+restic_binary: "/opt/restic/restic-{{ restic_version }}"

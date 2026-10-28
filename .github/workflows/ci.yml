@@ -1,0 +1,28 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install ansible-core ansible-lint yamllint
+      - run: ansible-galaxy collection install -r requirements.yml
+      - run: yamllint . && ansible-lint
+  molecule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install ansible-core molecule 'molecule-plugins[docker]'
+      - run: |
+          ansible-galaxy collection install -r requirements.yml
+          ansible-galaxy collection build --force
+          ansible-galaxy collection install --force mattiafait-baseline-*.tar.gz
+      - run: molecule test
+        env:
+          PY_COLORS: "1"
+          ANSIBLE_FORCE_COLOR: "1"

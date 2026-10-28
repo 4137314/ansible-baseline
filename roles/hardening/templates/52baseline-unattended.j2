@@ -1,0 +1,12 @@
+// {{ ansible_managed }}
+Unattended-Upgrade::Origins-Pattern {
+        "origin=*,label=${distro_id}-Security";
+        "origin=${distro_id},codename=${distro_codename}-security";
+{% if not hardening_auto_updates_security_only %}
+        "origin=${distro_id},codename=${distro_codename}";
+        "origin=${distro_id},codename=${distro_codename}-updates";
+{% endif %}
+};
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "{{ hardening_auto_reboot | lower }}";
+Unattended-Upgrade::Automatic-Reboot-Time "{{ hardening_auto_reboot_time }}";

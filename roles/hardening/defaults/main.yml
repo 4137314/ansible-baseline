@@ -1,0 +1,24 @@
+---
+hardening_ssh_port: 22
+# Restrict SSH logins to members of these groups (empty = no restriction).
+hardening_ssh_allow_groups: []
+hardening_ssh_max_auth_tries: 3
+hardening_sysctl:
+  kernel.kptr_restrict: 2
+  kernel.dmesg_restrict: 1
+  kernel.unprivileged_bpf_disabled: 1
+  kernel.yama.ptrace_scope: 1
+  fs.protected_symlinks: 1
+  fs.protected_hardlinks: 1
+  fs.suid_dumpable: 0
+  net.ipv4.conf.all.rp_filter: 1
+  net.ipv4.conf.all.accept_redirects: 0
+  net.ipv4.conf.all.send_redirects: 0
+  net.ipv6.conf.all.accept_redirects: 0
+  net.ipv4.tcp_syncookies: 1
+hardening_blacklisted_modules: [dccp, sctp, rds, tipc, firewire-core]
+hardening_auto_updates: true
+# Security updates only (Debian) / security advisories only (RHEL).
+hardening_auto_updates_security_only: true
+hardening_auto_reboot: false
+hardening_auto_reboot_time: "04:00"

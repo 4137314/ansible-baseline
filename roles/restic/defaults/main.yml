@@ -1,0 +1,17 @@
+---
+restic_version: 0.19.1
+# Required: repository URL and password (store the password with ansible-vault).
+restic_repository: ""
+restic_password: ""
+# Extra environment for the backend, e.g. AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY.
+restic_environment: {}
+restic_paths: [/etc, /var/lib, /home]
+restic_exclude:
+  - /var/lib/docker
+  - /var/lib/containers
+  - /var/lib/systemd/coredump
+  - "**/.cache"
+restic_schedule: "*-*-* 01:30:00"
+restic_forget_args: "--keep-daily 7 --keep-weekly 5 --keep-monthly 12"
+# Shell commands run before each backup (e.g. database dumps).
+restic_pre_backup: ""
